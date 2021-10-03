@@ -1,52 +1,47 @@
-/**
- Esta tabla ilustrará los datos de las especies animales
- Recabarán datos de cuanto hay,qué especie es,
- su fecha de descubrimiento,el peso y la atura
- @Adrián Ortega Moradillo
-*/
+# Use the latest 2.1 version of CircleCI pipeline process engine.
+# See: https://circleci.com/docs/2.0/configuration-reference
+version: 2.1
 
-drop table if exists animales; 
-create table animales(    --creamos la tabla animales
-    numero integer primary key, --le ordenamos que no se repita el numero
-	nombre_de_la_especie varchar(30),
-	grupo_de_epecie varchar(20),
-	lugar_de_origen varchar(20),
-	fecha_descubrimiento  date,
-	peso_kg numeric(9,3) check(peso_kg>0),  
-	altura_m numeric(4,3) check (altura_m>0)
- 	
- );
- --insertamos los valores en la tabla
-  insert into animales values(1,'Atún rojo','Peces','Atlántico',date '21-05-0679',415.25,3.15);
-  insert into animales values(2,'Sapo Común','Anfibios','España',date '23-05-1758',0.008,0.200);
-  insert into animales values(3,'Cocodrilo Hociquifino Africano','Reptiles','África Occidental',date '13-06-1824',200,2.33);
-  insert into animales values(4,'Anser anser','Aves','Norte de África',date '14-06-1760',1.700,0.565);
-  insert into animales values(5,'León de Nubia','Mamífero','Sudán',date '14-08-1975',174.9,3.40);
-  insert into animales values(6,'Mola mola','Peces','América Central',date '05-06-1758',1600,1.8);
-  insert into animales values(7, 'Larus canus','Aves','Norte de Europa',date '17-11-1724',0.430,0.07);
-  insert into animales values(8,'Oso Pardo','Mamífero','España',date '04-10-1634',55,1.46);
-  insert into animales values(9,'Foca monje','Mamífero','España',date '01-12-1779',340,3.8);
-  insert into animales values(10,'Tortuga verde','Peces','América Central',date '08-01-1425',60,2.34);
-  insert into animales values(11,'Hipopótamo','Mamífero','Sudán',date '08-01-1845',1.800,1.6);
-  
- --mostrara todos los datos de la tabla 
- select*from animales;
- 
- --no mostrará el grupo de especie y el lugar de origen sin que se repitan 
- select distinct grupo_de_epecie,lugar_de_origen from animales;
- 
- --nos mostrará el peso y la altura de los animales siguiendo unos criterios
- select nombre_de_la_especie,peso_kg,altura_m
- from animales
- where(altura_m<60
- and peso_kg>100
- or altura_m>=1.15)
- order by peso_kg
-;
---el mismo select que el anterior pero usando las leyes de morgan
- select nombre_de_la_especie,peso_kg,altura_m
- from animales
- where not(not altura_m < 60 
-		   or not peso_kg>100
-		   and not altura_m>=1.15)
-		   order by peso_kg;
+# Orbs are reusable packages of CircleCI configuration that you may share across projects, enabling you to create encapsulated, parameterized commands, jobs, and executors that can be used across multiple projects.
+# See: https://circleci.com/docs/2.0/orb-intro/
+orbs:
+  # The python orb contains a set of prepackaged CircleCI configuration you can use repeatedly in your configuration files
+  # Orb commands and jobs help you with common scripting around a language/tool
+  # so you dont have to copy and paste it everywhere.
+  # See the orb documentation here: https://circleci.com/developer/orbs/orb/circleci/python
+  python: circleci/python@1.2
+
+# Define a job to be invoked later in a workflow.
+# See: https://circleci.com/docs/2.0/configuration-reference/#jobs
+jobs:
+  build-and-test: # This is the name of the job, feel free to change it to better match what you're trying to do!
+    # These next lines defines a Docker executors: https://circleci.com/docs/2.0/executor-types/
+    # You can specify an image from Dockerhub or use one of the convenience images from CircleCI's Developer Hub
+    # A list of available CircleCI Docker convenience images are available here: https://circleci.com/developer/images/image/cimg/python
+    # The executor is the environment in which the steps below will be executed - below will use a python 3.8 container
+    # Change the version below to your required version of python
+    docker:
+      - image: cimg/python:3.8
+    # Checkout the code as the first step. This is a dedicated CircleCI step.
+    # The python orb's install-packages step will install the dependencies from a Pipfile via Pipenv by default.
+    # Here we're making sure we use just use the system-wide pip. By default it uses the project root's requirements.txt.
+    # Then run your tests!
+    # CircleCI will report the results back to your VCS provider.
+    steps:
+      - checkout
+      - python/install-packages:
+          pkg-manager: pip
+          # app-dir: ~/project/package-directory/  # If you're requirements.txt isn't in the root directory.
+          # pip-dependency-file: test-requirements.txt  # if you have a different name for your requirements file, maybe one that combines your runtime and test requirements.
+      - run:
+          name: Run tests
+          # This assumes pytest is installed via the install-package step above
+          command: pytest
+
+# Invoke jobs via workflows
+# See: https://circleci.com/docs/2.0/configuration-reference/#workflows
+workflows:
+  sample: # This is the name of the workflow, feel free to change it to better match your workflow.
+    # Inside the workflow, you define the jobs you want to run.
+    jobs:
+      - build-and-test
